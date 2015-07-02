@@ -31,8 +31,6 @@ rm -rf .temp.csv
 # import population for Scotland
 # Note: the source data has a row for the Scotland total (Scotland's geography code is S92000003), so I need to drop
 #       that.
-# PROBLEM: the shapefile has a "Glasgow City" entry (S12000046), what is that?
-# PROBLEM: the Scottish population entries are 31, what is missing? it should be 32 https://en.wikipedia.org/wiki/Local_government_in_Scotland
-csvfix edit -f 2,3 -e 's/,//g' source_data/scotland/Council\ Area\ blk/QS102SC.csv | csvfix remove -f 1 -s 'S92000003' | tail -n +2 | sed '$d' > .temp.csv
+csvfix edit -f 2,3 -e 's/,//g' source_data/scotland/Council\ Area\ blk/QS102SC.csv | csvfix remove -f 1 -s 'S92000003' | tail -n +2 | grep -v "^$" > .temp.csv
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"COPY gb_population (lad11cd, all_usual_residents, area, density) FROM '$(dir_resolve .temp.csv)' WITH CSV;"
 rm -rf .temp.csv
