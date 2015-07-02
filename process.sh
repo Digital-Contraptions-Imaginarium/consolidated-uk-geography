@@ -24,7 +24,7 @@ shp2pgsql -I -c -W "latin1" -s EPSG:27700 "source_data/great_britain/Local_autho
 # import population for England and Wales
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_population;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE gb_population (lad11cd CHAR(9), all_usual_residents INTEGER, area REAL, density REAL);"
-csvfix exclude -f 1,2,4,5,6,7,8,9 "$(dir_resolve source_data/england_and_wales/ks101ew.csv)" | tail -n +2 | sed '$d' > .temp.csv
+csvfix exclude -f 1,2,4,5,6,7,8,9 "$(dir_resolve source_data/england_and_wales/ks101ew.csv)" | tail -n +2 | grep -v "^$" > .temp.csv
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"COPY gb_population (lad11cd, all_usual_residents, area, density) FROM '$(dir_resolve .temp.csv)' WITH CSV;"
 rm -rf .temp.csv
 
