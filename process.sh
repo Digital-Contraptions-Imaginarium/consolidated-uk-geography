@@ -9,54 +9,21 @@ dir_resolve() {
     popd &> /dev/null
 }
 
-psql --set ON_ERROR_STOP=1 -dpostgres -c"DROP DATABASE IF EXISTS osw;"
-# should I specify the encoding here?
-psql --set ON_ERROR_STOP=1 -dpostgres -c"CREATE DATABASE osw;"
-psql --set ON_ERROR_STOP=1 -dosw -c"CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;"
+# Read the _README.md_. You need a PostGIS database for this thing to work.
+export DATABASE_NAME=consolidated_uk_geography
 
-# import output area boundaries for England and Wales
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS ew_output_areas;"
-shp2pgsql -I -c -W "latin1" -s EPSG:27700 "source_data/england-and-wales/Output_areas_(E+W)_2011_Boundaries_(Full_Clipped)_V2/OA_2011_EW_BFC_V2.shp" ew_output_areas | psql --set ON_ERROR_STOP=1 -dosw
+psql --set ON_ERROR_STOP=1 -dpostgres -c"DROP DATABASE IF EXISTS $DATABASE_NAME;"
+# should I specify the encoding here?
+psql --set ON_ERROR_STOP=1 -dpostgres -c"CREATE DATABASE $DATABASE_NAME;"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;"
+
+# import local authority boundaries for England, Scotland and Wales
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS esw_boundaries;"
+shp2pgsql -I -c -W "latin1" -s EPSG:27700 "source_data/great_britain/Local_authority_district_(GB)_2011_Boundaries_(Full_Extent)/LAD_DEC_2011_GB_BFE.shp" esw_boundaries | psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME
 
 # import population density data for England and Wales
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS ew_population;"
-psql --set ON_ERROR_STOP=1 -dosw -c"CREATE TABLE ew_population (oa11cd CHAR(9), density_per_hect REAL);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ew_population;"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ew_population (lad11cd CHAR(9), all_usual_residents INTEGER, males INTEGER, females INTEGER, lives_in_an_household INTEGER, lives_in_a_communal_establishment INTEGER, schoolchild_or_fulltime_student_aged_4_and_blah_blah INTEGER, area REAL, density REAL);"
+csvfix exclude -f 1,2,4 "$(dir_resolve source_data/england_and_wales/ks101ew.csv)" | tail -n +2 | sed '$d' > .temp.csv
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"COPY ew_population (lad11cd, all_usual_residents, males, females, lives_in_an_household, lives_in_a_communal_establishment, schoolchild_or_fulltime_student_aged_4_and_blah_blah, area, density) FROM '$(dir_resolve .temp.csv)' WITH CSV;"
 rm -rf .temp.csv
-for file in source_data/england-and-wales/*.csv;
-    do
-        # beware, the use of _sed_ below presume that all files end with an empty line; this could be probably managed
-        # better
-        cut -d , -f 2,7 "$(dir_resolve $file)" | tail -n +2 | sed '$d' >> .temp.csv
-    done
-psql --set ON_ERROR_STOP=1 -dosw -c"COPY ew_population (oa11cd, density_per_hect) FROM '$(dir_resolve .temp.csv)' WITH CSV;"
-rm -rf .temp.csv
-
-# adjust England and Wales tables' contents and join population and boundaries and drop the rest
-psql --set ON_ERROR_STOP=1 -dosw -fprocess_ew.sql
-
-# import output area boundaries and population density for Scotland
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS s;"
-shp2pgsql -I -c -W "latin1" -s EPSG:27700 "source_data/scotland/output-area-2011-mhw/OutputArea2011_MHW.shp" s | psql --set ON_ERROR_STOP=1 -dosw
-psql --set ON_ERROR_STOP=1 -dosw -fprocess_s.sql
-
-# import output area boundaries for Northern Ireland
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS ni_output_areas;"
-shp2pgsql -I -c -W "latin1" -s EPSG:27700 "source_data/ni/SA2011_Esri_Shapefile/SA2011.shp" ni_output_areas | psql --set ON_ERROR_STOP=1 -dosw
-
-# import population density for Northern Ireland
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS ni_population;"
-psql --set ON_ERROR_STOP=1 -dosw -c"CREATE TABLE ni_population (soa2011 CHAR(9), population REAL);"
-Rscript --vanilla process_ni.R > .temp.csv
-psql --set ON_ERROR_STOP=1 -dosw -c"COPY ni_population (soa2011, population) FROM '$(dir_resolve .temp.csv)' WITH CSV;"
-rm -rf .temp.csv
-
-# adjust Northern Ireland tables' contents and join population and boundaries and drop the rest
-psql --set ON_ERROR_STOP=1 -dosw -fprocess_ni.sql
-
-# merge all
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS uk;"
-psql --set ON_ERROR_STOP=1 -dosw -c"CREATE TABLE uk AS ((SELECT * FROM ew) UNION (SELECT * FROM s) UNION (SELECT * FROM ni));"
-psql --set ON_ERROR_STOP=1 -dosw -c"CREATE INDEX uk_idx ON uk USING GIST (geom);"
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS ew;"
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS s;"
-psql --set ON_ERROR_STOP=1 -dosw -c"DROP TABLE IF EXISTS ni;"
