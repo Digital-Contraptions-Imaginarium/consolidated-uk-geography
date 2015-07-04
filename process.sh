@@ -19,7 +19,7 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE EXTENSION IF NOT EXISTS po
 
 # Import local authority boundaries for England, Scotland and Wales
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_boundaries;"
-shp2pgsql -I -c -W "latin1" -s EPSG:27700 "data/great_britain/Local_authority_district_(GB)_2011_Boundaries_(Full_Extent)/LAD_DEC_2011_GB_BFE.shp" gb_boundaries | psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME
+shp2pgsql -I -c -W "latin1" -s EPSG:27700 "data/great_britain/Local_authority_district_(GB)_2011_Boundaries_(Generalised_Clipped)/LAD_DEC_2011_GB_BGC.shp" gb_boundaries | psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE gb_boundaries DROP COLUMN gid, DROP COLUMN lad11cdo, DROP COLUMN lad11nmw;"
 
 # Import population for England and Wales
@@ -81,3 +81,5 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE uk AS (SELECT lad11c
 
 # add an overall numeric index, suitable for importing as a QGIS layer
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE uk ADD COLUMN gid SERIAL; UPDATE uk SET gid = DEFAULT; ALTER TABLE uk ADD PRIMARY KEY (gid);"
+
+ogr2ogr -f GeoJSON out.json "PG:host=localhost dbname=$DATABASE_NAME user=giacecco" -sql "select * from uk;"
