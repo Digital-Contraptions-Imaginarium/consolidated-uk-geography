@@ -8,3 +8,6 @@ The UK last census in 2011 was administered by three statistics authorities: one
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 The scripts in this repository try to start addressing the issue by importing selected data from the three sources into homogeneous, cross-country datasets. Hope you will appreciate the effort and continue it together with me.
+
+##Prerequisites
+A working [PostGIS database](http://postgis.net/), the [GDAL](http://www.gdal.org/) command line utilities and an [R](http://www.r-project.org/) environment with the following packages installed: gdata. The scripts have been tested on MacOS and should work on Linux with little adaptation.
