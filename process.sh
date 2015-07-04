@@ -25,7 +25,7 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE gb_boundaries DROP CO
 # Import population for England and Wales
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_population;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE gb_population (lad11cd CHAR(9), population INTEGER, area REAL);"
-csvfix exclude -f 1,2,4,5,6,7,8,9,12 "$(dir_resolve data/england_and_wales/ks101ew.csv)" | tail -n +2 | grep -v "^$" > data/england_and_wales/.temp.csv
+csvfix exclude -f 1,2,4,6,7,8,9,10,12 "$(dir_resolve data/england_and_wales/ks101ew.csv)" | tail -n +2 | grep -v "^$" > data/england_and_wales/.temp.csv
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"COPY gb_population (lad11cd, population, area) FROM '$(dir_resolve data/england_and_wales/.temp.csv)' WITH CSV;"
 rm -rf data/england_and_wales/.temp.csv
 
@@ -69,7 +69,7 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni_temp_2 AS (SELECT
 # Finally, get the final data I need for NI; note that the area is converted to hectares, that appears to be the
 # "standard" for UK statistics. This step takes > 16 minutes on a fast mid-2015 MacBook Pro.
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni;"
-psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni AS (SELECT lgd2014, lgd2014name, sum(population) AS population, ST_Union(geom) AS geom, ST_Area(ST_Union(geom)) / 10000 AS area FROM ni_temp_2 GROUP BY lgd2014, lgd2014name);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni AS (SELECT lgd2014, lgd2014name, sum(population) AS population, ST_Union(geom) AS geom, CAST(ROUND(CAST(ST_Area(ST_Union(geom)) / 10000 AS NUMERIC), 0) AS INTEGER) AS area FROM ni_temp_2 GROUP BY lgd2014, lgd2014name);"
 
 # Delete Northern Ireland's temporary CSV files and tables
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni_boundaries; DROP TABLE IF EXISTS ni_population; DROP TABLE IF EXISTS ni_sa_la_lookup; DROP TABLE IF EXISTS ni_temp_1; DROP TABLE IF EXISTS ni_temp_2;"
@@ -80,4 +80,4 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS uk;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE uk AS (SELECT lad11cd AS lad_code, lad11nm AS lad_name, geom, population, area FROM gb) UNION (SELECT lgd2014 AS lad_code, lgd2014 AS lad_name, geom, population, area FROM ni);"
 
 # add an overall numeric index, suitable for importing as a QGIS layer
-# psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE uk ADD COLUMN gid SERIAL; UPDATE uk SET gid = DEFAULT; ALTER TABLE uk ADD PRIMARY KEY (gid);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE uk ADD COLUMN gid SERIAL; UPDATE uk SET gid = DEFAULT; ALTER TABLE uk ADD PRIMARY KEY (gid);"
