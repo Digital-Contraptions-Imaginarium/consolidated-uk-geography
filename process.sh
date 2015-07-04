@@ -72,14 +72,15 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni AS (SELECT lgd201
 
 # Finally, create the UK table
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS uk;"
-psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE uk AS (SELECT lad11cd AS lad_code, lad11nm AS lad_name, geom, population, area FROM gb) UNION (SELECT lgd2014 AS lad_code, lgd2014 AS lad_name, geom, population, area FROM ni);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE uk AS (SELECT lad11cd AS la_code, lad11nm AS la_name, geom, population, area FROM gb) UNION (SELECT lgd2014 AS la_code, lgd2014 AS la_name, geom, population, area FROM ni);"
 
 # Clean up the temporary tables and CSV files
-psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_boundaries; DROP TABLE IF EXISTS gb_population; DROP TABLE IF EXISTS gb; DROP TABLE IF EXISTS ni_boundaries; DROP TABLE IF EXISTS ni_population; DROP TABLE IF EXISTS ni_sa_la_lookup; DROP TABLE IF EXISTS ni_temp_1; DROP TABLE IF EXISTS ni_temp_2; DROP TABLE IF EXISTS ni;"
-find data -name ".temp.*" -type f -delete
+# psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_boundaries; DROP TABLE IF EXISTS gb_population; DROP TABLE IF EXISTS gb; DROP TABLE IF EXISTS ni_boundaries; DROP TABLE IF EXISTS ni_population; DROP TABLE IF EXISTS ni_sa_la_lookup; DROP TABLE IF EXISTS ni_temp_1; DROP TABLE IF EXISTS ni_temp_2; DROP TABLE IF EXISTS ni;"
+# find data -name ".temp.*" -type f -delete
 
-# add an overall numeric index, suitable for importing as a QGIS layer
+# add an overall numeric index, suitable for importing as a QGIS layer, and create a spatial index
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE uk ADD COLUMN gid SERIAL; UPDATE uk SET gid = DEFAULT; ALTER TABLE uk ADD PRIMARY KEY (gid);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE INDEX uk_idx_geom ON uk USING GIST (geom);"
 
 # dump everything to a GeoJSON file
 rm -rf uk.json
