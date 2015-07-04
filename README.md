@@ -7,7 +7,7 @@ The UK last census in 2011 was administered by three statistics authorities: one
 <blockquote class="twitter-tweet" lang="en"><p lang="en" dir="ltr">I started hating devolution the first time I had to reconcile <a href="https://twitter.com/hashtag/opendata?src=hash">#opendata</a> from the three UK 2011 censuses: England+Wales, Scotland and NI 😡</p>&mdash; Gianfranco Cecconi (@giacecco) <a href="https://twitter.com/giacecco/status/612226696037683200">June 20, 2015</a></blockquote>
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-The scripts in this repository start addressing the issue by importing selected data from the three sources - **for the time being: geometry, population (as of the 2011 Census) and area of all local administrative authorities** - into one homogeneous, cross-countries dataset. It is more complicated than this, but before I write the rest I first need to fix [bug #3](https://github.com/Digital-Contraptions-Imaginarium/consolidated-uk-geography/issues/3).
+The scripts in this repository start addressing the issue by importing selected data from the three sources - **for the time being: geometry, population (as of the 2011 Census) and area of all local administrative authorities** - into one homogeneous, cross-countries dataset. The ambition is to have a dataset that describes the latest geographies vs the latest coherent demographics (as I write, the 2011 Census' population numbers). 
 
 Hope you will appreciate the effort and continue it together with me. Please check [the open issues](https://github.com/Digital-Contraptions-Imaginarium/consolidated-uk-geography/issues) before asking for support or deciding what to contribute. Thanks!
 
