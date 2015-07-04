@@ -1,4 +1,0 @@
-Northern Ireland
-================
-- Find the 2011 Census population data by local government district from the Northern Ireland Statistics & Research Agency website at http://www.nisra.gov.uk/census/2011/results/population.html, choose the "Population and Household Estimates by Local Government District for Northern Ireland Report" PDF  (_table_p1a.pdf_), go to table P1a on page 9 and convert it to CSV in _table_p1a.csv_ (you can use copy and paste fromt the PDF to MS Excel).
-- I could not find shapefiles for the NI local government districts, but there are shapefiles for the 2011 Census super output areas (SOAs) instead at http://www.nisra.gov.uk/geography/SOA.htm , unzip them to the _SOA2011_Esri_Shapefile_ folder. The SOAs do not nest within the new local government districts but a best-fit lookup table can be downloaded from the same page: _11DC_Lookup.xls_.
