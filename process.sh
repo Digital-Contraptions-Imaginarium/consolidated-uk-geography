@@ -27,14 +27,12 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_populatio
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE gb_population (lad11cd CHAR(9), population INTEGER, area REAL);"
 csvfix exclude -f 1,2,4,6,7,8,9,10,12 "$(dir_resolve data/england_and_wales/ks101ew.csv)" | tail -n +2 | grep -v "^$" > data/england_and_wales/.temp.csv
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"COPY gb_population (lad11cd, population, area) FROM '$(dir_resolve data/england_and_wales/.temp.csv)' WITH CSV;"
-rm -rf data/england_and_wales/.temp.csv
 
 # Import population for Scotland
 # Note: the source data has a row for the Scotland total (Scotland's geography code is S92000003), so I need to drop
 #       that.
 csvfix exclude -f 4 data/scotland/Council\ Area\ blk/QS102SC.csv | csvfix edit -f 2,3 -e 's/,//g' | csvfix remove -f 1 -s 'S92000003' | tail -n +2 | grep -v "^$" > data/scotland/.temp.csv
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"COPY gb_population (lad11cd, population, area) FROM '$(dir_resolve data/scotland/.temp.csv)' WITH CSV;"
-rm -rf data/scotland/.temp.csv
 
 # Join the GB shapefile and population tables into a new _gb_ table
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb;"
@@ -66,20 +64,22 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni_temp_1 AS (SELECT
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni_temp_2;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni_temp_2 AS (SELECT ni_temp_1.*, ni_sa_la_lookup.lgd2014, ni_sa_la_lookup.lgd2014name FROM ni_temp_1 INNER JOIN ni_sa_la_lookup ON ni_temp_1.sa2011 = ni_sa_la_lookup.sa2011);"
 
-# Finally, get the final data I need for NI; note that the area is converted to hectares, that appears to be the
-# "standard" for UK statistics. This step takes > 16 minutes on a fast mid-2015 MacBook Pro.
+# Produce the final NI data; note that the area is converted to hectares, that appears to be the "standard" for UK
+# statistics. This step alone takes > 16 minutes on a fast mid-2015 MacBook Pro.
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni AS (SELECT lgd2014, lgd2014name, sum(population) AS population, ST_Union(geom) AS geom, CAST(ROUND(CAST(ST_Area(ST_Union(geom)) / 10000 AS NUMERIC), 0) AS INTEGER) AS area FROM ni_temp_2 GROUP BY lgd2014, lgd2014name);"
-
-# Delete Northern Ireland's temporary CSV files and tables
-psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni_boundaries; DROP TABLE IF EXISTS ni_population; DROP TABLE IF EXISTS ni_sa_la_lookup; DROP TABLE IF EXISTS ni_temp_1; DROP TABLE IF EXISTS ni_temp_2;"
-rm -rf data/ni/.temp.*.csv
 
 # Finally, create the UK table
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS uk;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE uk AS (SELECT lad11cd AS lad_code, lad11nm AS lad_name, geom, population, area FROM gb) UNION (SELECT lgd2014 AS lad_code, lgd2014 AS lad_name, geom, population, area FROM ni);"
 
+# Clean up the temporary tables and CSV files
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_boundaries; DROP TABLE IF EXISTS gb_population; DROP TABLE IF EXISTS gb; DROP TABLE IF EXISTS ni_boundaries; DROP TABLE IF EXISTS ni_population; DROP TABLE IF EXISTS ni_sa_la_lookup; DROP TABLE IF EXISTS ni_temp_1; DROP TABLE IF EXISTS ni_temp_2; DROP TABLE IF EXISTS ni;"
+find data -name ".temp.*" -type f -delete
+
 # add an overall numeric index, suitable for importing as a QGIS layer
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE uk ADD COLUMN gid SERIAL; UPDATE uk SET gid = DEFAULT; ALTER TABLE uk ADD PRIMARY KEY (gid);"
 
-ogr2ogr -f GeoJSON out.json "PG:host=localhost dbname=$DATABASE_NAME user=giacecco" -sql "select * from uk;"
+# dump everything to a GeoJSON file
+rm -rf uk.json
+ogr2ogr -f GeoJSON uk.json "PG:host=localhost dbname=$DATABASE_NAME" -sql "select * from uk;"
