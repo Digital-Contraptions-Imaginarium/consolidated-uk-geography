@@ -39,8 +39,9 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE gb AS (SELECT gb_boundaries.*, gb_population.population, gb_population.area FROM gb_boundaries INNER JOIN gb_population ON gb_boundaries.lad11cd = gb_population.lad11cd);"
 
 # Import small area (SA) boundaries for Northern Ireland
+# Note: the Ordnance Survey of Northern Ireland uses a different spatial reference system than Great Britain, SRID 29901
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni_boundaries;"
-shp2pgsql -I -c -W "latin1" -s EPSG:27700 "data/ni/SA2011_Esri_Shapefile/SA2011.shp" ni_boundaries | psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME
+shp2pgsql -I -c -W "latin1" -s EPSG:29901 "data/ni/SA2011_Esri_Shapefile/SA2011.shp" ni_boundaries | psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE ni_boundaries DROP COLUMN gid, DROP COLUMN soa2011, DROP COLUMN x_coord, DROP COLUMN y_coord;"
 
 # Select the relevant parts and convert the MS Excel source files to temporary CSV files
