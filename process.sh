@@ -95,6 +95,7 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE INDEX uk_idx_geom ON uk US
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_boundaries; DROP TABLE IF EXISTS gb_population; DROP TABLE IF EXISTS gb; DROP TABLE IF EXISTS ni_boundaries; DROP TABLE IF EXISTS ni_population; DROP TABLE IF EXISTS ni_sa_la_lookup; DROP TABLE IF EXISTS ni_temp_1; DROP TABLE IF EXISTS ni_temp_2; DROP TABLE IF EXISTS ni;"
 find data -name ".temp.*" -type f -delete
 
-# dump everything to a GeoJSON file
-rm -rf uk.json
+# dump everything to CSV and GeoJSON files
+rm -rf uk.json uk.csv
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"COPY (select la_code, la_name, population, area FROM uk) TO '$(dir_resolve uk.csv)' WITH CSV HEADER;"
 ogr2ogr -f GeoJSON uk.json "PG:host=localhost dbname=$DATABASE_NAME" -sql "select * from uk;"
