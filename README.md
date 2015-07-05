@@ -18,7 +18,9 @@ $ bash process.sh
 ```
 
 ##Prerequisites
-You need a working, local [PostGIS database](http://postgis.net/), the [GDAL](http://www.gdal.org/) command line utilities and an [R](http://www.r-project.org/) environment with the _gdata_ package installed. The PostGIS commands assume that the current user has administrative rights and no password set. Of course this is bad practice if you use that PostGIS for anything but development.
+You need a working, local [PostgreSQL/PostGIS database](http://postgis.net/), the [GDAL](http://www.gdal.org/) command line utilities (we use _shp2pgsql_ and _ogr2ogr_), [csvfix](http://neilb.bitbucket.org/csvfix/) and an [R](http://www.r-project.org/) environment with the _gdata_ package installed (to read directly from MS Excel files).
+
+The PostgreSQL commands assume that the current user has administrative rights and no password set. Of course this is bad practice if you use that PostgreSQL for anything but development. It comes handy [if you've spent some times making your PostgreSQL faster](http://big-elephants.com/2012-12/tuning-postgres-on-macos/).
 
 The scripts have been tested on MacOS and should work on Linux with little adaptation.
 
