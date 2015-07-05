@@ -13,6 +13,20 @@ Moreover, the data is sometimes 'stuck' to the administrative geography that wor
 
 The scripts in this repository start experimenting / addressing the issue by importing selected data from the three sources - **for the time being: geometry, population (as of the 2011 Census) and area of all current local administrative authorities** - into one homogeneous, cross-countries dataset. The ambition is to create a dataset that describes the latest administrative geographies (the ones most people would know and "connect to") vs the latest coherent demographics (as I write, just the 2011 Census' total population numbers).
 
+What I call the "local administrative authorities" are:
+- in England:
+  - the "single-tier" authorities
+    - the 55 [unitary authorities](https://en.wikipedia.org/wiki/Unitary_authorities_of_England)
+    - the ["City of London"](https://en.wikipedia.org/wiki/City_of_London_Corporation) (that is not a London borough)
+    - the [Isles of Scilly](https://en.wikipedia.org/wiki/Isles_of_Scilly)
+  - the "lower-tier" authorities
+    - the 201 [non metropolitan districts](https://en.wikipedia.org/wiki/Non-metropolitan_district) (or "shires")
+    - the 36 [metropolitan boroughs](https://en.wikipedia.org/wiki/Metropolitan_borough)
+    - the 32 [London boroughs](https://en.wikipedia.org/wiki/London_boroughs)
+- in Northern Ireland, the 11 [districts](https://en.wikipedia.org/wiki/Local_government_in_Northern_Ireland)
+- in Scotland, the 32 [unitary authorities](https://en.wikipedia.org/wiki/Local_government_in_Scotland) (or "councils")
+- in Wales, the 22 [principal areas](https://en.wikipedia.org/wiki/Local_government_in_Wales) (or "counties")
+
 Note that **for the time being, no data is distributed or re-distributed in this repository**, but just the code to produce it yourself, as I did not have the time to assess in detail the licensing of all the sources. While I am quite comfortable for England and Wales' data to be available under the UK [Open Government Licence](http://www.nationalarchives.gov.uk/doc/open-government-licence) (OGL), I can't say the same for Scotland and Northern Ireland. The documentation in the [data](data) folder describes all the source data you need to find and download before you can run the scripts.
 
 Hope you will appreciate the effort and continue it together with me. I am sure lots of testing is needed and there may be mistakes. Please check [the open issues](https://github.com/Digital-Contraptions-Imaginarium/consolidated-uk-geography/issues) before asking for support or deciding how to contribute. Thanks!
