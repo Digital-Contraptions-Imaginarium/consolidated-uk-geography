@@ -2,14 +2,18 @@ consolidated-uk-geography
 =========================
 
 ##Introduction
-The results of the UK last census in 2011 was published by three bodies: one for England and Wales, the [Office for National Statistics](http://www.ons.gov.uk/), one for Scotland, the [National Records for Scotland](http://www.nrscotland.gov.uk/), and one for Northern Ireland, the [Northern Ireland Statistics & Research Agency](http://www.nisra.gov.uk). To help data scientists charge higher fees to their clients, the data is published on three different websites, using different aggregation models, different formats, different units and even different spatial reference systems (I still can't believe it) so that a substantial volume of work is necessary to draw a comprehensive picture of the United Kingdom as a whole.
+The results of the UK last census in 2011 are published by three bodies: the [Office for National Statistics](http://www.ons.gov.uk/) for England and Wales, the [National Records for Scotland](http://www.nrscotland.gov.uk/) for Scotland and the [Northern Ireland Statistics & Research Agency](http://www.nisra.gov.uk) for Northern Ireland.
+
+To help data scientists charge higher fees to their clients, the data is published on three different websites, using different aggregation models, different formats and even different spatial reference systems (I still can't believe it) so that a substantial volume of work is necessary to draw a comprehensive picture of the United Kingdom as a whole.
+
+Moreover, the data is sometimes 'stuck' to the administrative geography that worked at the time of the Census. E.g. the Northern Irish machine-readable data is available aggregated vs the then census geography (small areas, super output areas etc.) but not vs the most relevant and current ones, such as the ["local government districts"](https://en.wikipedia.org/wiki/Local_government_in_Northern_Ireland).
 
 <blockquote class="twitter-tweet" lang="en"><p lang="en" dir="ltr">I started hating devolution the first time I had to reconcile <a href="https://twitter.com/hashtag/opendata?src=hash">#opendata</a> from the three UK 2011 censuses: England+Wales, Scotland and NI 😡</p>&mdash; Gianfranco Cecconi (@giacecco) <a href="https://twitter.com/giacecco/status/612226696037683200">June 20, 2015</a></blockquote>
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-The scripts in this repository start addressing the issue by importing selected data from the three sources - **for the time being: geometry, population (as of the 2011 Census) and area of all local administrative authorities** - into one homogeneous, cross-countries dataset. The ambition is to have a dataset that describes the latest geographies vs the latest coherent demographics (as I write, just the 2011 Census' total population numbers).
+The scripts in this repository start experimenting / addressing the issue by importing selected data from the three sources - **for the time being: geometry, population (as of the 2011 Census) and area of all current local administrative authorities** - into one homogeneous, cross-countries dataset. The ambition is to create a dataset that describes the latest administrative geographies (the ones most people would know and "connect to") vs the latest coherent demographics (as I write, just the 2011 Census' total population numbers).
 
-Hope you will appreciate the effort and continue it together with me. Please check [the open issues](https://github.com/Digital-Contraptions-Imaginarium/consolidated-uk-geography/issues) before asking for support or deciding what to contribute. Thanks!
+Hope you will appreciate the effort and continue it together with me. I am sure lots of testing is needed and there may be mistakes. Please check [the open issues](https://github.com/Digital-Contraptions-Imaginarium/consolidated-uk-geography/issues) before asking for support or deciding how to contribute. Thanks!
 
 ##Usage
 Define the name of the target database by changing the _DATABASE_NAME_ variable in the _process.sh_ script and run it by using _bash_ in a terminal. After lots of verbose output and at least 16 minutes (depending on your machine's performance and PostgreSQL optimisation) you will have a _uk_ table in your PostGIS and a ~54Mb _uk.json_ file with the consolidated data.
