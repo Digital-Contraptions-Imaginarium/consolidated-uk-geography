@@ -18,7 +18,7 @@ Note that **for the time being, no data is distributed or re-distributed in this
 Hope you will appreciate the effort and continue it together with me. I am sure lots of testing is needed and there may be mistakes. Please check [the open issues](https://github.com/Digital-Contraptions-Imaginarium/consolidated-uk-geography/issues) before asking for support or deciding how to contribute. Thanks!
 
 ##Usage
-Define the name of the target database by changing the _DATABASE_NAME_ variable in the _process.sh_ script and run it by using _bash_ in a terminal. After lots of verbose output and at least 16 minutes (depending on your machine's performance and PostgreSQL optimisation) you will have a _uk_ table in your PostGIS and a ~54Mb _uk.json_ file with the consolidated data.
+Define the name of the target database by changing the _DATABASE_NAME_ variable in the _process.sh_ script and run it by using _bash_ in a terminal. After lots of verbose output and at least 16 minutes (depending on your machine's performance and PostgreSQL optimisation) you will have a _uk_ table in your PostGIS, a ~54Mb _uk.json_ GeoJSON and a 14Kb _uk.csv_ file with the consolidated data. The GeoJSON file includes the authorities' geometries.
 ```
 $ bash process.sh
 ```
