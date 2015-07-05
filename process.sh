@@ -18,6 +18,9 @@ psql --set ON_ERROR_STOP=1 -dpostgres -c"CREATE DATABASE $DATABASE_NAME;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA public;"
 
 # Import local authority boundaries for England, Scotland and Wales
+# Notes:
+# - Here as in the rest of the script, I don't calculate areas from the geometries, but trust the original area measure
+#   provided by the sources.
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_boundaries;"
 shp2pgsql -I -c -W "latin1" -s EPSG:27700 "data/great_britain/Local_authority_district_(GB)_2011_Boundaries_(Generalised_Clipped)/LAD_DEC_2011_GB_BGC.shp" gb_boundaries | psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE gb_boundaries DROP COLUMN gid, DROP COLUMN lad11cdo, DROP COLUMN lad11nmw;"
@@ -37,6 +40,7 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"COPY gb_population (lad11cd, popu
 # Join the GB shapefile and population tables into a new _gb_ table
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE gb AS (SELECT gb_boundaries.*, gb_population.population, gb_population.area FROM gb_boundaries INNER JOIN gb_population ON gb_boundaries.lad11cd = gb_population.lad11cd);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE gb ALTER COLUMN geom TYPE Geometry(MultiPolygon, 4326) USING ST_Transform(geom, 4326);"
 
 # Import small area (SA) boundaries for Northern Ireland
 # Note: the Ordnance Survey of Northern Ireland uses a different spatial reference system than Great Britain, SRID 29901
@@ -65,18 +69,24 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni_temp_1 AS (SELECT
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni_temp_2;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni_temp_2 AS (SELECT ni_temp_1.*, ni_sa_la_lookup.lgd2014, ni_sa_la_lookup.lgd2014name FROM ni_temp_1 INNER JOIN ni_sa_la_lookup ON ni_temp_1.sa2011 = ni_sa_la_lookup.sa2011);"
 
-# Produce the final NI data; note that the area is converted to hectares, that appears to be the "standard" for UK
-# statistics. This step alone takes > 16 minutes on a fast mid-2015 MacBook Pro.
+# Produce the final NI data.
+# Note that:
+# - The _geom_ column is created explicitly because I had issues using the CREATE ... AS form where I lost the SRID!
+# - ST_Union returns a Polygon that I convert o MultiPolygon for consistency with the geometries in the _gb_ table.
+# - The area is rounded to two digits for consistency with the GB data, and after the SUM to reduce the error.
+# - The INSERT alone takes > 16 minutes on a fast mid-2015 MacBook Pro.
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni;"
-psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni AS (SELECT lgd2014, lgd2014name, sum(population) AS population, ST_Union(geom) AS geom, CAST(ROUND(CAST(ST_Area(ST_Union(geom)) / 10000 AS NUMERIC), 0) AS INTEGER) AS area FROM ni_temp_2 GROUP BY lgd2014, lgd2014name);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni (lgd2014 CHAR(9), lgd2014name VARCHAR, population INTEGER, area REAL);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"SELECT AddGeometryColumn('ni', 'geom', 4326, 'MultiPolygon', 2);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"INSERT INTO ni (lgd2014, lgd2014name, population, geom, area) SELECT lgd2014, lgd2014name, sum(population) AS population, ST_Transform(ST_Multi(ST_Union(geom)), 4326) AS geom, CAST(ROUND(CAST(SUM(hectares) AS NUMERIC), 2) AS REAL) AS area FROM ni_temp_2 GROUP BY lgd2014, lgd2014name;"
 
 # Finally, create the UK table
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS uk;"
-psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE uk AS (SELECT lad11cd AS la_code, lad11nm AS la_name, geom, population, area FROM gb) UNION (SELECT lgd2014 AS la_code, lgd2014 AS la_name, geom, population, area FROM ni);"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE uk AS (SELECT lad11cd AS la_code, lad11nm AS la_name, geom, population, area FROM gb) UNION (SELECT lgd2014 AS la_code, lgd2014name AS la_name, geom, population, area FROM ni);"
 
 # Clean up the temporary tables and CSV files
-# psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_boundaries; DROP TABLE IF EXISTS gb_population; DROP TABLE IF EXISTS gb; DROP TABLE IF EXISTS ni_boundaries; DROP TABLE IF EXISTS ni_population; DROP TABLE IF EXISTS ni_sa_la_lookup; DROP TABLE IF EXISTS ni_temp_1; DROP TABLE IF EXISTS ni_temp_2; DROP TABLE IF EXISTS ni;"
-# find data -name ".temp.*" -type f -delete
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS gb_boundaries; DROP TABLE IF EXISTS gb_population; DROP TABLE IF EXISTS gb; DROP TABLE IF EXISTS ni_boundaries; DROP TABLE IF EXISTS ni_population; DROP TABLE IF EXISTS ni_sa_la_lookup; DROP TABLE IF EXISTS ni_temp_1; DROP TABLE IF EXISTS ni_temp_2; DROP TABLE IF EXISTS ni;"
+find data -name ".temp.*" -type f -delete
 
 # add an overall numeric index, suitable for importing as a QGIS layer, and create a spatial index
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"ALTER TABLE uk ADD COLUMN gid SERIAL; UPDATE uk SET gid = DEFAULT; ALTER TABLE uk ADD PRIMARY KEY (gid);"
