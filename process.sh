@@ -81,7 +81,7 @@ psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni_temp_2 AS (SELECT
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS ni;"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"CREATE TABLE ni (lgd2014 CHAR(9), lgd2014name VARCHAR, population INTEGER, area NUMERIC);"
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"SELECT AddGeometryColumn('ni', 'geom', 4326, 'MultiPolygon', 2);"
-psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"INSERT INTO ni (lgd2014, lgd2014name, population, geom, area) SELECT lgd2014, lgd2014name, sum(population) AS population, ST_Transform(ST_Multi(ST_Union(geom)), 4326) AS geom, CAST(ROUND(CAST(SUM(hectares) AS NUMERIC), 2) AS NUMERIC) AS area FROM ni_temp_2 GROUP BY lgd2014, lgd2014name;"
+psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"INSERT INTO ni (lgd2014, lgd2014name, population, geom, area) SELECT lgd2014, lgd2014name, sum(population) AS population, ST_Transform(ST_Multi(ST_SimplifyPreserveTopology(ST_Union(geom), 0.5)), 4326) AS geom, CAST(ROUND(CAST(SUM(hectares) AS NUMERIC), 2) AS NUMERIC) AS area FROM ni_temp_2 GROUP BY lgd2014, lgd2014name;"
 
 # Finally, create the UK table including a numeric index, suitable for importing as a QGIS layer, and a spatial index
 psql --set ON_ERROR_STOP=1 -d$DATABASE_NAME -c"DROP TABLE IF EXISTS uk;"
